@@ -1,9 +1,59 @@
-import Image from "next/image";
+'use client'
+
+import Image from 'next/image'
+import { useEffect, useState } from 'react'
+import { socket } from '@/utils/socket'
 
 export default function Home() {
+  const [isConnected, setIsConnected] = useState(false)
+  const [clientCount, setClientCount] = useState(0)
+
+  useEffect(() => {
+    function onStatus(status: string) {
+      setIsConnected(status === 'connected')
+    }
+
+    function onClientCount(count: number) {
+      setClientCount(count)
+      console.log(
+        `Client count changed to ${count} - someone may have connected/disconnected`
+      )
+    }
+
+    socket.on('status', onStatus)
+    socket.on('clientCount', onClientCount)
+    socket.on('ping', () => {
+      console.log('Received ping from server')
+    })
+
+    console.log('Establishing socket connection...')
+
+    return () => {
+      console.log('Cleaning up socket listeners')
+      socket.off('status', onStatus)
+      socket.off('clientCount', onClientCount)
+      socket.off('ping')
+    }
+  }, [])
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-3 h-3 rounded-full ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
+            <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+          </div>
+          <span className="text-zinc-500">|</span>
+          <div className="flex items-center gap-2">
+            <span>Online:</span>
+            <span className="font-bold">{clientCount}</span>
+          </div>
+        </div>
         <Image
           className="dark:invert"
           src="/next.svg"
@@ -14,7 +64,7 @@ export default function Home() {
         />
         <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
           <li className="mb-2">
-            Get started by editing{" "}
+            Get started by editing{' '}
             <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
               src/app/page.tsx
             </code>
@@ -47,6 +97,9 @@ export default function Home() {
           >
             Read our docs
           </a>
+        </div>
+        <div className="mx-auto text-sm text-zinc-500">
+          Made with Next.js + Socket.io
         </div>
       </main>
       <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
@@ -97,5 +150,5 @@ export default function Home() {
         </a>
       </footer>
     </div>
-  );
+  )
 }
